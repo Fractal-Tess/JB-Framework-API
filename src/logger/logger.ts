@@ -1,80 +1,90 @@
-import { log } from '@deps'
+import { yellow, green, red, bold, log } from '@deps'
+
+const msgFormatter = (log: log.LogRecord, msg: string) => {
+  if (log.args.length != 0) {
+    log.args.forEach(arg => {
+      msg += `\n\t=> ${arg},`
+    })
+    msg = msg.slice(0, -1)
+  }
+  return msg
+}
 
 const fileFormatter = (log: log.LogRecord) => {
-  let msg =
-    `[${log.datetime.toDateString()}]:` + `[${log.levelName}]` + ` - ${log.msg}`
-
-  if (log.args.length != 0) {
-    console.log('log.args:' + log.args)
-    msg += ' [Additional args] => '
-    log.args.forEach((arg, index) => {
-      msg += ` arg${index}: ${arg},`
-    })
-    msg = msg.slice(0, -1)
-  }
-  return msg.trim()
+  const msg =
+    `[${log.datetime.toJSON()}]:` + `[${log.levelName}]` + ` - ${log.msg}`
+  return msgFormatter(log, msg)
 }
+
 const consoleFormatter = (log: log.LogRecord) => {
-  let msg = `${log.levelName} ${log.msg}`
-
-  if (log.args.length != 0) {
-    console.log('log.args:' + log.args)
-    msg += ' [Additional args] => '
-    log.args.forEach((arg, index) => {
-      msg += ` arg${index}: ${arg},`
-    })
-    msg = msg.slice(0, -1)
-  }
-  if (log.level >= 30) {
-    msg = '\n' + msg + '\n'
-  }
-  return msg.trim()
+  const msg = `${log.levelName} ${log.msg}`
+  return msgFormatter(log, msg)
 }
 
-// Flush flushable handlers
+class MyConsoleHandler extends log.handlers.BaseHandler {
+  override format(logRecord: log.LogRecord): string {
+    let msg = super.format(logRecord)
+    switch (logRecord.level) {
+      case log.LogLevels.INFO:
+        msg = green(msg)
+        break
+      case log.LogLevels.WARNING:
+        msg = yellow(msg)
+        break
+      case log.LogLevels.ERROR:
+        msg = red(msg)
+        break
+      case log.LogLevels.CRITICAL:
+        msg = bold(red(msg))
+        break
+      default:
+        break
+    }
 
-export const InitLoggers = async (
-  logMode: 'overwrite' | 'append' = 'append',
-  flushInterval = 1,
-  maxBackupCount = 10
+    return msg
+  }
+  override log(msg: string): void {
+    console.log(msg)
+  }
+}
+
+class MyFileHandler extends log.handlers.FileHandler {
+  override handle(logRecord: log.LogRecord) {
+    if (this.level > logRecord.level) return
+    const msg = this.format(logRecord)
+    this.log(msg)
+    this.flush()
+  }
+}
+
+export const InitLogger = async (
+  logMode: 'overwrite' | 'append' = 'append'
 ) => {
   const mode = logMode === 'overwrite' ? 'w' : 'a'
-
+  log.info(`Initializing logger with mode ${mode}`)
   const handlers = {
-    logFileHandler: new log.handlers.RotatingFileHandler('INFO', {
+    logFileHandler: new MyFileHandler('INFO', {
       formatter: fileFormatter,
       mode,
-      maxBackupCount,
-      maxBytes: 1_048_576, // 10mb
-      filename: 'logs/generic/generic.log'
+      filename: 'logs/generic/logs.log'
     }),
 
-    logHttpHandler: new log.handlers.RotatingFileHandler('INFO', {
+    logHttpHandler: new MyFileHandler('INFO', {
       formatter: fileFormatter,
       mode,
-      maxBackupCount,
-      maxBytes: 1_048_576, // 10mb
       filename: 'logs/http/http.log'
     }),
 
-    logPerformanceHandler: new log.handlers.RotatingFileHandler('INFO', {
+    logPerformanceHandler: new MyFileHandler('INFO', {
       formatter: fileFormatter,
       mode,
-      maxBackupCount,
-      maxBytes: 1_048_576, // 10mb
       filename: 'logs/performance/performance.log'
     }),
 
-    logConsoleHandler: new log.handlers.ConsoleHandler('DEBUG', {
+    logConsoleHandler: new MyConsoleHandler('DEBUG', {
       formatter: consoleFormatter
     })
   }
-  // Flushing interval
-  setInterval(() => {
-    handlers.logFileHandler.flush()
-    handlers.logPerformanceHandler.flush()
-    handlers.logHttpHandler.flush()
-  }, flushInterval * 1000)
 
   await log.setup({
     handlers,
@@ -84,12 +94,12 @@ export const InitLoggers = async (
         handlers: ['logFileHandler', 'logConsoleHandler']
       },
       performanceLogger: {
-        level: 'INFO',
-        handlers: ['logPerformanceHandler']
+        level: 'DEBUG',
+        handlers: ['logPerformanceHandler', 'logConsoleHandler']
       },
       httpLogger: {
-        level: 'INFO',
-        handlers: ['logHttpHandler']
+        level: 'DEBUG',
+        handlers: ['logHttpHandler', 'logConsoleHandler']
       }
     }
   })
