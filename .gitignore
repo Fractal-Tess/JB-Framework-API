@@ -5,6 +5,8 @@
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
+logs/*/.**
+
 # Local History for Visual Studio Code
 .history/
 
@@ -15,3 +17,4 @@
 .env
 
 quokkaTesting.js
+logs/performance/performance.log
