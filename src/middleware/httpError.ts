@@ -5,16 +5,16 @@ const httpLogger = log.getLogger('httpLogger')
 export const httpError: Middleware = async (ctx, next) => {
   try {
     await next()
-  } catch (err) {
-    const message = err.message
-    const status = err.status || err.statusCode || Status.InternalServerError
+  } catch (e) {
+    const message = e.message
+    const status = e.status || e.statusCode || Status.InternalServerError
 
-    if (isHttpError(err)) {
+    if (isHttpError(e)) {
       httpLogger.error(
         ` at pathname: => [${ctx.request.url.pathname}] by ip(s) ${ctx.request.ip}`,
-        err
+        e.message
       )
-      switch (err.status) {
+      switch (e.status) {
         case Status.NotFound:
         case Status.Forbidden:
         case Status.BadRequest:
@@ -25,10 +25,10 @@ export const httpError: Middleware = async (ctx, next) => {
           ctx.response.body = message
       }
     } else {
-      log.error(err)
+      log.error(e)
       ctx.response.status = Status.InternalServerError
       ctx.response.body = 'Something went wrong :('
-      throw err
+      throw e
     }
   }
 }

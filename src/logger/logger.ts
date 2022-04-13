@@ -11,8 +11,7 @@ const msgFormatter = (log: log.LogRecord, msg: string) => {
 }
 
 const fileFormatter = (log: log.LogRecord) => {
-  const msg =
-    `[${log.datetime.toJSON()}]:` + `[${log.levelName}]` + ` - ${log.msg}`
+  const msg = `[${log.datetime.toJSON()}]:` + `[${log.levelName}]` + ` - ${log.msg}`
   return msgFormatter(log, msg)
 }
 
@@ -57,9 +56,7 @@ class MyFileHandler extends log.handlers.FileHandler {
   }
 }
 
-export const InitLogger = async (
-  logMode: 'overwrite' | 'append' = 'append'
-) => {
+export const initLog = async (logMode: 'overwrite' | 'append' = 'append') => {
   const mode = logMode === 'overwrite' ? 'w' : 'a'
   log.info(`Initializing logger with mode ${mode}`)
   const handlers = {
@@ -95,7 +92,7 @@ export const InitLogger = async (
       },
       performanceLogger: {
         level: 'DEBUG',
-        handlers: ['logPerformanceHandler', 'logConsoleHandler']
+        handlers: ['logPerformanceHandler']
       },
       httpLogger: {
         level: 'DEBUG',

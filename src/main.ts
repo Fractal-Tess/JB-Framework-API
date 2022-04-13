@@ -1,13 +1,11 @@
 import { Application, log, oakCors } from '@deps'
 import { config } from '@config'
-import { InitLoggers } from '@logger'
+import { initLog } from '@logger'
 
-await InitLoggers('overwrite')
+await initLog('overwrite')
 
 const { router } = await import('./routes/router.ts')
-const { timingMiddleware, httpError } = await import(
-  './middleware/middlewares.ts'
-)
+const { timingMiddleware, httpError } = await import('./middleware/middlewares.ts')
 
 const app = new Application()
 app.addEventListener('error', evt => {

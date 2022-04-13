@@ -1,5 +1,5 @@
 import { log, MongoClient } from '@deps'
-import { Fiction } from '@types'
+import { FullFiction } from '@types'
 
 const client = new MongoClient()
 
@@ -9,4 +9,4 @@ log.info('Connected to Mongodb')
 
 export const fictionDB = client
   .database('JB-Framework-data')
-  .collection<Fiction>('Fictions')
+  .collection<FullFiction>('Fictions')

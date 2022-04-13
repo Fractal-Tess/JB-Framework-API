@@ -10,3 +10,5 @@ export * as log from 'https://deno.land/std@0.129.0/log/mod.ts'
 export * from 'https://deno.land/std@0.129.0/streams/mod.ts'
 
 export * from 'https://deno.land/std@0.131.0/fmt/colors.ts'
+export * from 'https://deno.land/x/zod@v3.14.4/mod.ts'
+export * from 'https://deno.land/x/oak@v10.5.1/helpers.ts'

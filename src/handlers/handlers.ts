@@ -1,1 +1,2 @@
-export * from './fictions/scrape-ficiton.ts'
+export * from './fictions/post.ts'
+export * from './fictions/get.ts'

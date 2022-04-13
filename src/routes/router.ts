@@ -1,45 +1,24 @@
-import { ScrapeFiction } from '@types'
-import { log, Router, Status } from '@deps'
-import { handleScrapeFiction } from '@handlers'
-// import { saveFiction, getFiction } from '../handlers/fiction.ts'
+import { Router } from '@deps'
+import { handleGetChapter, handleGetFiction, handlePostFiction } from '@handlers'
 
 const router = new Router()
 
 router.prefix('/api/v1')
 
-router.post('/fiction', async ctx => {
-  const sf = await ctx.request.body({ type: 'json' }).value
-  if (validate(sf)) {
-    await handleScrapeFiction(sf)
+router
+  .get('/heartbeat', ctx => {
+    ctx.response.body = 'API UP!'
     ctx.response.status = 200
-  } else {
-    ctx.throw(Status.InternalServerError, 'Error while handling scrape fiction')
-  }
-})
+  })
+  .post('/fiction', async ctx => {
+    await handlePostFiction(ctx)
+  })
 
-// .get('/fiction', async ctx => {
-//   const query = ctx.request.url.searchParams.get('query') ?? ''
-//   const limit = ctx.request.url.searchParams.get('limit') ?? 10
-//   ctx.response.body = 'Request does not bundle a query URL search param'
-
-//   const fiction = await getFiction(query, +limit)
-//   if (!fiction) {
-//     ctx.response.status = 404
-//     return
-//   }
-
-//   ctx.response.body = fiction
-//   ctx.response.status = 200
-// })
-// .get('/heartbeat', ctx => {
-//   ctx.response.status = 200
-//   ctx.response.body = Math.random() > 0.5 ? 'Heart' : 'Beating'
-// })
+  .get('/fiction', async ctx => {
+    await handleGetFiction(ctx)
+  })
+  .get('/fiction/:title/:chapter(\\d+)', async ctx => {
+    await handleGetChapter(ctx)
+  })
 
 export { router }
-
-const validate = (f: Record<string, any>): f is ScrapeFiction => {
-  // import { Schema } from 'https://deno.land/x/valivar/mod.ts'
-  // TODO: Make a ScrapeFiction validator
-  return true
-}

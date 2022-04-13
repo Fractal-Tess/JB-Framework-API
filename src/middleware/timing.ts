@@ -7,5 +7,6 @@ export const timingMiddleware: Middleware = async (ctx, next) => {
   await next()
   const ms = Date.now() - start
   ctx.response.headers.set('X-Response-Time', `${ms}ms`)
-  logger.info(`=> ${ctx.request.url.href} | Took ${ms}ms`)
+  const msg = `${ctx.request.ip} => ${ctx.request.url.href} | Took ${ms}ms`
+  logger.info(msg)
 }

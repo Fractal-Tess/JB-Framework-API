@@ -1,8 +1,18 @@
-import { Bson } from 'https://deno.land/x/mongo@v0.28.0/mod.ts'
+import { Bson } from '@deps'
 
 type Asset = string | Uint8Array | null
+type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> &
+  {
+    [K in Keys]-?: Required<Pick<T, K>> & Partial<Record<Exclude<Keys, K>, undefined>>
+  }[Keys]
+
+export type FictionContentScrape = RequireOnlyOne<
+  Partial<ScrapeFictionChapter>,
+  'content'
+>
 
 // Scrapper imported
+
 export interface ScrapeFiction {
   title: string
   author: string | null
@@ -17,9 +27,6 @@ export interface ScrapeFiction {
   banner: Asset
   cover: Asset
 
-  lastPublicUpdate: Date
-  lastHiddenUpdate: Date
-
   chapters: ScrapeFictionChapter[]
   indexURL: string
   platform: 'RoyalRoad' | 'ReadLightNovel'
@@ -31,6 +38,10 @@ export interface ScrapeFictionChapter {
   content: string[] | string | null
   uploadDate: Date | null
   scrapeURL: string
+}
+
+export interface ScrapeChapterRequest extends ScrapeFictionChapter {
+  platform: FullFiction['platform']
 }
 
 // Database stored
@@ -46,20 +57,10 @@ export interface FullFiction extends ScrapeFiction {
   chapters: FullFictionChapter[]
 
   newestContent: Date
-
-  fictionURL: string
-  platform: 'RoyalRoad' | 'ReadLightNovel'
 }
 
 export interface FullFictionChapter extends ScrapeFictionChapter {
-  chapterTitle: string | null
-  chapterNumber: number
-  content: string[] | string | null
-  original_views: number
-  original_likes: number
   likes: number
   views: number
   lastScrapped: Date
-  uploadDate: Date | null
-  scrapeURL: string
 }

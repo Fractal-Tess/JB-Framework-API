@@ -1,0 +1,4 @@
+[2022-04-13T23:45:07.730Z]:[INFO] - Connecting to Mongodb
+[2022-04-13T23:45:07.750Z]:[INFO] - Connected to Mongodb
+[2022-04-13T23:45:07.754Z]:[INFO] - Running api server on 8888
+
