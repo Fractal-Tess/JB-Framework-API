@@ -10,7 +10,7 @@ export const handlePostFiction = async (ctx: Context): Promise<void> => {
   } catch (_) {
     ctx.throw(Status.InternalServerError, `Error while json parsing input`)
   }
-  const result = validate(sf)
+  const result = await validate(sf)
   if (!result.success) {
     ctx.throw(Status.BadRequest, `ScrapeFiction was in wrong format\n => ${result.error}`)
   }
@@ -24,7 +24,7 @@ export const handlePostFiction = async (ctx: Context): Promise<void> => {
 
   if (f) {
     // It's already in the database - update it!
-    await fictionDB.updateOne(
+    fictionDB.updateOne(
       { _id: f._id },
       {
         $set: {
@@ -45,7 +45,7 @@ export const handlePostFiction = async (ctx: Context): Promise<void> => {
       views: 0,
       ratting: 0,
 
-      chapters: sf.chapters.map(nc => updateChapter(nc)),
+      chapters: sf.chapters.map(sfc => updateChapter(sfc)),
       newestContent: new Date()
     })
   }
@@ -54,35 +54,38 @@ export const handlePostFiction = async (ctx: Context): Promise<void> => {
 }
 
 const updateChapters = (
-  ncs: ScrapeFictionChapter[],
-  ocs: FullFictionChapter[]
+  sfcs: ScrapeFictionChapter[],
+  dbcs: FullFictionChapter[]
 ): FullFictionChapter[] => {
-  return ncs.map(nc => {
-    const oc = ocs.find(oc => oc.chapterNumber === nc.chapterNumber)
-    return updateChapter(nc, oc)
+  return sfcs.map(sfc => {
+    const dbc = dbcs.find(dbc => dbc.chapterNumber === sfc.chapterNumber)
+    return updateChapter(sfc, dbc)
   })
 }
 
 const updateChapter = (
-  nc: ScrapeFictionChapter,
-  oc: FullFictionChapter | undefined = undefined
+  sfc: ScrapeFictionChapter,
+  dbc?: FullFictionChapter
 ): FullFictionChapter => {
-  if (!oc)
+  if (!dbc)
     return {
-      ...nc,
+      ...sfc,
       views: 0,
       likes: 0,
-      lastScrapped: new Date()
+      lastScrapped: new Date(),
+      uploadDate: new Date(sfc.uploadDate!)
     }
   return {
-    ...oc,
-    ...nc,
-    content: nc.content || oc.content || null,
+    ...dbc,
+    ...sfc,
+    content: sfc.content || dbc.content || null,
+    chapterTitle: sfc.chapterTitle || dbc.chapterTitle || null,
+
     lastScrapped: new Date()
   }
 }
 
-const validate = (sf: ScrapeFiction) => {
+const validate = async (sf: ScrapeFiction) => {
   const zod = z.object({
     title: z.string(),
     author: z.string().nullable(),
@@ -103,6 +106,7 @@ const validate = (sf: ScrapeFiction) => {
           .preprocess(arg => {
             if (typeof arg === 'string' || arg instanceof Date) return new Date(arg)
           }, z.date())
+          .transform(date => new Date(date))
           .nullable(),
         scrapeURL: z.string()
       })
@@ -111,5 +115,5 @@ const validate = (sf: ScrapeFiction) => {
     platform: z.enum(['RoyalRoad', 'ReadLightNovel'])
   })
 
-  return zod.safeParse(sf)
+  return await zod.safeParseAsync(sf)
 }

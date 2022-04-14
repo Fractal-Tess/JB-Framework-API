@@ -1,5 +1,5 @@
 // deno-lint-ignore-file require-await
-import { Context, RouterContext, Status } from '@deps'
+import { Context, log, RouterContext, Status } from '@deps'
 import { fictionDB } from '@db'
 import { FictionContentScrape, FullFiction } from '@types'
 
@@ -38,7 +38,10 @@ export const handleGetFiction = async (ctx: Context): Promise<void> => {
 export const handleGetChapter = async (
   ctx: RouterContext<'/fiction/:title/:chapter(\\d+)', Record<string, any>>
 ): Promise<void> => {
-  const { title, chapter } = ctx.params
+  let { title, chapter } = ctx.params as { title: string; chapter: string | number }
+  chapter = +chapter - 1
+  title = title.toLocaleLowerCase()
+
   const f = await fictionDB.findOne({ title: title })
   if (!f) {
     //   Such fiction does not exist
@@ -46,29 +49,38 @@ export const handleGetChapter = async (
     return
   }
 
-  if (+chapter > f.chapters.length - 1 || +chapter < 0) {
+  if (chapter > f.chapters.length - 1 || chapter < 0) {
     ctx.throw(Status.BadRequest, `Desired chapter is out of bounds :${chapter}`)
   }
-  let c = f.chapters[+chapter]
 
-  const url = new URL('http://localhost:7992/api/v1/scrapper/fiction/chapter')
-  url.search = new URLSearchParams({
-    platform: f.platform,
-    scrapeURL: c.scrapeURL
-  }).toString()
+  let c = f.chapters[chapter]
 
   if (!c.content) {
-    const res = await fetch(url.toString())
-    if (res.status !== 200) {
-      ctx.response.status = 500
-      return
+    let sfc
+
+    const url = new URL('http://localhost:7992/api/v1/scrapper/fiction/chapter')
+    url.search = new URLSearchParams({
+      platform: f.platform,
+      scrapeURL: c.scrapeURL
+    }).toString()
+
+    try {
+      const res = await fetch(url.toString())
+      if (res.status !== 200) {
+        ctx.response.status = 500
+        return
+      }
+      sfc = (await res.json()) as FictionContentScrape
+    } catch (e) {
+      log.error(e)
+      ctx.throw(Status.InternalServerError, `Unable to scrape content for this chapter`)
     }
-    const nc = (await res.json()) as FictionContentScrape
-    c = { ...c, ...nc }
-    fictionDB.updateOne(
+    c = { ...c, ...sfc }
+    const z = await fictionDB.updateOne(
       { _id: f._id, 'chapters.chapterNumber': c.chapterNumber },
-      { $set: { 'chapters.$': nc } }
+      { $set: { 'chapters.$': c } }
     )
+    console.log(z)
   }
 
   ctx.response.body = c
