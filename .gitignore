@@ -16,4 +16,3 @@ logs/**/*.log
 # Env variables
 .env
 
-quokkaTesting.js
